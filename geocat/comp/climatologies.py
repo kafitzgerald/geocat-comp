@@ -97,20 +97,6 @@ def _calculate_center_of_time_bounds(
     return dset.assign_coords({time_dim: time})
 
 
-def _infer_calendar_name(dates):
-    """Given an array of datetimes, infer the CF calendar name.
-
-    This code was taken from `xarray/coding/times.py <https://github.com/pydata/xarray/blob/75eefb8e95a70f1667623a8418d81da3f3148a40/xarray/coding/times.py>`_
-    as the function is considered internal by xarray and could change at
-    anytime. It was copied to preserve the version that is compatible with
-    functions in climatologies.py
-    """
-    if np.asarray(dates).dtype == "datetime64[ns]":
-        return "proleptic_gregorian"
-    else:
-        return np.asarray(dates).ravel()[0].calendar
-
-
 def climate_anomaly(
         dset: typing.Union[xr.DataArray, xr.Dataset],
         freq: str,
@@ -406,7 +392,7 @@ def calendar_average(
             f"Data needs to be uniformly spaced in the {time_dim!r} dimension.")
 
     # Retrieve calendar name
-    calendar = _infer_calendar_name(dset[time_dim])
+    calendar = xr.coding.times.infer_calendar_name(dset[time_dim])
 
     # Group data
     dset = dset.resample({
@@ -572,7 +558,7 @@ def climatology_average(
             f"Data needs to be uniformly spaced in the {time_dim!r} dimension.")
 
     # Retrieve calendar name
-    calendar = _infer_calendar_name(dset[time_dim])
+    calendar = xr.coding.times.infer_calendar_name(dset[time_dim])
 
     attrs = {}
     if keep_attrs in {True, None}:
