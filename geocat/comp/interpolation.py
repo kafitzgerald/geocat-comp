@@ -163,7 +163,7 @@ def _vertical_remap(func_interpolate, new_levels, xcoords, data, interp_axis=0):
         return func_interpolate(new_levels, xcoords, data, axis=interp_axis)
 
 
-def _temp_extrapolate(data, lev_dim, lev, p_sfc, ps, phi_sfc):
+def _temp_extrapolate(t_bot, lev, p_sfc, ps, phi_sfc):
     r"""This helper function extrapolates temperature below ground using the
     ECMWF formulation described in `Vertical Interpolation and Truncation of
     Model-Coordinate Data <https://dx.doi.org/10.5065/D6HX19NH>`__ by Trenberth,
@@ -174,11 +174,8 @@ def _temp_extrapolate(data, lev_dim, lev, p_sfc, ps, phi_sfc):
 
     Parameters
     ----------
-    data: :class:`xarray.DataArray`
+    t_bot: :class:`xarray.DataArray`
         The temperature at the lowest level of the model.
-
-    lev_dim: str
-        The name of the vertical dimension.
 
     lev: int
         The pressure levels of interest. Must be in the same units as ``ps`` and ``p_sfc``
@@ -201,7 +198,7 @@ def _temp_extrapolate(data, lev_dim, lev, p_sfc, ps, phi_sfc):
     g_inv = 1 / 9.80616  # inverse of gravity
     alpha = 0.0065 * R_d * g_inv
 
-    tstar = data.isel({lev_dim: -1}, drop=True) * (1 + alpha * (ps / p_sfc - 1))
+    tstar = t_bot * (1 + alpha * (ps / p_sfc - 1))
     hgt = phi_sfc * g_inv
     t0 = tstar + 0.0065 * hgt
     tplat = xr.apply_ufunc(np.minimum, 298, t0, dask='parallelized')
@@ -331,7 +328,7 @@ def _vertical_remap_extrap(
     if variable == 'temperature':
         output = output.where(
             output.plev <= p_sfc,
-            _temp_extrapolate(data, lev_dim, output.plev, p_sfc, ps, phi_sfc),
+            _temp_extrapolate(t_bot, output.plev, p_sfc, ps, phi_sfc),
         )
     elif variable == 'geopotential':
         output = output.where(
@@ -366,6 +363,15 @@ def interp_hybrid_to_pressure(
 
     Notes
     -----
+    Atmosphere hybrid-sigma pressure coordinates are commonly defined in two different
+    ways as described below and in CF Conventions. This particular function expects the
+    first formulation. However, with some minor adjustments on the user side it can
+    support datasets leveraging the second formulation as well.  In this case, you can
+    set the input parameters p0=1 and hyam=ap to adapt the function to meet your needs.
+
+    Formulation 1: p(n,k,j,i) = a(k)*p0 + b(k)*ps(n,j,i)
+    Formulation 2: p(n,k,j,i) = ap(k) + b(k)*ps(n,j,i)
+
     ACKNOWLEDGEMENT: We'd like to thank to `Brian Medeiros <https://github.com/brianpm>`__,
     `Matthew Long <https://github.com/matt-long>`__, and `Deepak Cherian <https://github.com/dcherian>`__
     at NSF NCAR for their great contributions since the code implemented here is mostly

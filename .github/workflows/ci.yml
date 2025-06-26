@@ -14,9 +14,7 @@ concurrency:
 
 jobs:
   test:
-    # if: |
-    #   github.repository == 'NCAR/geocat-comp'
-    name: Python ${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.env }}
+    name: ${{ matrix.os }} python ${{ matrix.python-version }} ${{ matrix.env }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -35,6 +33,7 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+
       - name: set environment variables
         run: |
           echo "TODAY=$(date +%Y-%m-%d)" >> $GITHUB_ENV
@@ -103,11 +102,11 @@ jobs:
 
       - name: Upload code coverage to Codecov
         if: github.repository == 'NCAR/geocat-comp'
-        uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # v5.4.2
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

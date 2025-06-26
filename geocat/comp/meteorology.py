@@ -1557,8 +1557,10 @@ def psychrometric_constant(
     """Compute psychrometric constant [kPa / C] as described in the Food and
     Agriculture Organization (FAO) Irrigation and Drainage Paper 56 entitled:
 
-    Crop evapotranspiration - Guidelines for computing crop water
-    requirement. Specifically, see equation 7 of Chapter 3 or equation 3-2 in
+    "Crop evapotranspiration - Guidelines for computing crop water
+    requirement"
+
+    Specifically, see equation 8 of Chapter 3 or equation 3-10 in
     Annex 3.
 
     From FAO 56:
@@ -1852,7 +1854,9 @@ def saturation_vapor_pressure_slope(
 
 def _delta_pressure1D(pressure_lev, surface_pressure):
     """Helper function for `delta_pressure`. Calculates the pressure layer
-    thickness (delta pressure) of a one-dimensional pressure level array.
+    thickness, i.e. the change in pressure (delta pressure), for each layer
+    in a one-dimensional pressure level array taking into account a
+    specified surface pressure.
 
     Returns an array of length matching `pressure_lev`.
 
@@ -1893,9 +1897,12 @@ def _delta_pressure1D(pressure_lev, surface_pressure):
         pressure_lev = np.flip(pressure_lev)
 
     # Calculate delta pressure
-    delta_pressure = np.full_like(pressure_lev, np.nan)
+    delta_pressure = np.full_like(pressure_lev, np.nan, dtype=float)
 
-    [indices] = np.nonzero(np.array(pressure_lev) <= surface_pressure)
+    # Determine which layers to calculate thickness for based upon midpoints
+    midpoints = np.array((pressure_lev + np.roll(pressure_lev, shift=1)) / 2.0)
+    midpoints[0] = 0.0
+    [indices] = np.nonzero(midpoints < surface_pressure)
 
     start_level = min(indices)
     end_level = max(indices)
@@ -1924,8 +1931,9 @@ def _delta_pressure1D(pressure_lev, surface_pressure):
 
 
 def delta_pressure(pressure_lev, surface_pressure):
-    """Calculates the pressure layer thickness (delta pressure) of a constant
-    pressure level coordinate system.
+    """Calculates the pressure layer thickness, i.e. the change in pressure
+    (delta pressure), for each layer in a specified constant pressure level
+    coordinate system and accounting for specified surface pressure(s).
 
     Returns an array of shape matching (``surface_pressure``, ``pressure_lev``).
 
